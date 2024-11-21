@@ -1,0 +1,115 @@
+version: '3.8'
+services:
+  frontend:
+    image: harfoh/front
+    ports:
+      - "5173:5173"
+    env_file:
+      - ./frontend/.env
+    environment:
+      - VITE_API_URL=http://localhost:8000 
+    restart: unless-stopped  
+
+  backend:
+    image:  harfoh/back 
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      PYTHONPATH: /app  
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: changethis123
+    restart: unless-stopped
+
+  adminer:
+    image: adminer
+    ports:
+      - "8083:8080"
+    restart: unless-stopped
+
+  proxy:
+    image: 'docker.io/jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./proxy_params.conf:/etc/nginx/proxy_params.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - backend
+      - db
+      - adminer
+      - proxy
+    restart: unless-stopped  
+
+  prometheus:
+      image: prom/prometheus:v2.37.9
+      ports:
+        - 9090:9090
+      command:
+        - '--config.file=/etc/prometheus/prometheus.yml'
+      volumes:
+        - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+        - ./prometheus/data:/prometheus
+      restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    ports:
+      - '3000:3000'
+    volumes:
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+      #password: root123
+
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:v1.5.0
+    command: '--path.rootfs=/host'
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - /sys:/host:ro,rslave
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    command:
+      - '-port=8098'
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    privileged: true
+    restart: unless-stopped    
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
