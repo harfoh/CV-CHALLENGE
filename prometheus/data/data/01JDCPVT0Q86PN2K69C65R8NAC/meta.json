@@ -1,0 +1,17 @@
+{
+	"ulid": "01JDCPVT0Q86PN2K69C65R8NAC",
+	"minTime": 1732270180602,
+	"maxTime": 1732276800000,
+	"stats": {
+		"numSamples": 125169,
+		"numSeries": 5291,
+		"numChunks": 5291
+	},
+	"compaction": {
+		"level": 1,
+		"sources": [
+			"01JDCPVT0Q86PN2K69C65R8NAC"
+		]
+	},
+	"version": 1
+}
